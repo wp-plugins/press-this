@@ -1,0 +1,155 @@
+// ==========================================================================
+// Main
+// ==========================================================================
+
+// I'm sure you can think of some awesome code to put here. I usually use it
+// as a scratchpad before moving code into their own modules.
+
+html {
+	background: #fff;
+	// border-left: 1px solid $gray--light;
+}
+
+body {
+	margin: 0 0 em(95) 1px;
+
+	&:before {
+		// Goofy way to keep left border full height. Could do it with a gradient as well.
+		content: '';
+		position: fixed;
+		top: 0;
+		bottom: 0;
+		left: 0;
+		width: 1px;
+		background: $gray--light;
+	}
+
+	@include breakpoint(phablet){
+		font-size: 16px;
+	}
+	@include breakpoint(phone){
+		font-size: 14px;
+	}
+}
+
+
+// Editor stuff
+.editor {
+	padding: 0 em(30) 0;
+}
+
+.editor--content {
+	min-height: 8em;
+}
+
+[contenteditable] { // Temporary
+	outline: 0;
+}
+
+.post__title {
+	margin: 0;
+	padding: .83em 0;
+	border-bottom: 1px solid $gray--light;
+	line-height: 1.4;
+}
+
+
+// Featured images
+.featured-image-container {
+	position: relative;
+	padding: 2px 0;
+	border-bottom: 1px solid $gray--light;
+	// background-position: center;
+	// background-repeat: no-repeat;
+	// background-size: cover;
+}
+
+.featured-image {
+	display: block;
+	padding: 62.5% 0 0 100%;
+	background-position: center;
+	background-repeat: no-repeat;
+	background-size: cover;
+	cursor: pointer;
+}
+
+.other-images {
+	@include clearfix;
+	display: none;
+	margin: 0 0 46px;
+	padding-bottom: 2px;
+	border-bottom: 1px solid $gray--light;
+}
+
+.site-thumbnail {
+	$size: 25%;
+	position: relative;
+	display: block;
+	float: left;
+	width: $size;
+	padding: $size 0 0 $size;
+	background-position: center;
+	background-repeat: no-repeat;
+	background-size: cover;
+	cursor: pointer;
+
+	&:after {
+		content: '';
+		position: absolute;
+		top: 0;
+		right: 0;
+		height: 100%;
+		width: 2px;
+		background: #fff;
+	}
+}
+
+.thumbs-large {
+	$size: 33.333%;
+
+	width: $size;
+	padding: $size 0 0 $size;
+}
+// .thumbs-medium {
+// 	width: 33.333%;
+// 	padding: 33.333% 0 0 33.333%;
+// }
+.thumbs-small {
+	$size: 12.5%;
+
+	width: $size;
+	padding: $size 0 0 $size;
+}
+
+.other-images--visible {
+	.featured-image {
+		display: none;
+	}
+	.other-images {
+		display: block;
+	}
+}
+
+.other-images__switch {
+	position: absolute;
+	bottom: 10px;
+	right: 10px;
+}
+
+
+// Footer/actions
+.actions {
+	position: fixed;
+	bottom: 0;
+	left: 1px;
+	width: 100%;
+	height: em(65);
+	background: $gray--ultralight;
+	background: transparentize($gray--ultralight, .1);
+	border-top: 1px solid $gray--light;
+}
+
+.post-actions {
+	float: right;
+	margin: em(14) em(30);
+}
