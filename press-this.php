@@ -3,7 +3,7 @@
 Plugin Name: Press This
 Plugin URI: http://wordpress.org/extend/plugins/press-this/
 Description: Posting images, links, and cat gifs will never be the same.
-Version: 0.0.1a
+Version: 0.0.2
 Author: Press This Team
 Author URI: https://corepressthis.wordpress.com/
 Text Domain: press-this
@@ -77,15 +77,26 @@ class WpPressThis {
 				     || false !== strpos( $_SERVER['HTTP_REFERER'], admin_url( 'post.php' ) ) ) )
 					remove_action( 'admin_init', 'send_frame_options_header' );
 				/*
-				 * AJAX handling
+				 * AJAX emdpoints
 				 */
-				add_action( 'wp_ajax_press_this_site_settings', array( $this, 'press_this_ajax_site_settings' ) );
-				add_action( 'wp_ajax_press_this_publish_post', array( $this, 'press_this_ajax_publish_post' ) );
-				add_action( 'wp_ajax_press_this_draft_post', array( $this, 'press_this_ajax_draft_post' ) );
+				// Site settings
+				add_action( 'wp_ajax_press_this_site_settings',       array( $this, 'press_this_ajax_site_settings' ) );
+				// Post draft and publish
+				add_action( 'wp_ajax_press_this_publish_post',        array( $this, 'press_this_ajax_publish_post' ) );
+				add_action( 'wp_ajax_press_this_draft_post',          array( $this, 'press_this_ajax_draft_post' ) );
+				// Chrome extension manifest
+				// add_action( 'wp_ajax_press_this_chrome_ext_manifest', array( $this, 'press_this_ajax_chrome_ext_manifest' ) );
 			}
 		}
 	}
 
+	/**
+	 * WpPressThis::script_name()
+	 * Returns the current app's fully qualified script name/url based on system-level tests
+	 *
+	 * @return mixed|string
+	 * @uses $_SERVER['SCRIPT_NAME'], $_SERVER['PHP_SELF'], $_SERVER['REQUEST_URI']
+	 */
 	public function script_name() {
 		$script_name = ( ! empty( $_SERVER['SCRIPT_NAME'] ) )
 			? $_SERVER['SCRIPT_NAME']
@@ -99,29 +110,66 @@ class WpPressThis {
 			: $script_name;
 	}
 
+	/**
+	 * WpPressThis::set_url_scheme( $url )
+	 * Sets the URL to https or http, depending on availability and related WP config settings/APIs.
+	 *
+	 * @param $url string
+	 *
+	 * @return string
+	 * @uses WP's force_ssl_admin(), force_ssl_login(), force_ssl_content(), is_ssl(), and set_url_scheme()
+	 */
 	public function set_url_scheme( $url ) {
+		$current_user = get_current_user();
 		if ( ( function_exists( 'force_ssl_admin' ) && force_ssl_admin() )
 		     || ( function_exists( 'force_ssl_login' ) && force_ssl_login() )
 		     || ( function_exists( 'force_ssl_content' ) && force_ssl_content() )
-		     || ( function_exists( 'is_ssl' ) && is_ssl() )) {
+		     || ( function_exists( 'is_ssl' ) && is_ssl() )
+			 || ! empty( $current_user->use_ssl ) ) {
 			return set_url_scheme(  $url, 'https' );
 		}
 		return set_url_scheme( $url, 'http' );
 	}
 
+	/**
+	 * WpPressThis::strip_url_scheme()
+	 * Removes http or https from a URL to have it default to the current protocaol on the client-side (EG: //youtube.com/)
+	 *
+	 * @param $url
+	 * @return mixed
+	 */
 	public function strip_url_scheme( $url ) {
 		return preg_replace( '/^https?:(\/\/.+)$/', '\1', $url );
 	}
 
-	function plugin_version() {
-		$data = get_plugin_data( __FILE__, false, false );
-		return ( ! empty( $data ) && ! empty( $data['Version'] ) ) ? $data['Version'] : 0;
+	/**
+	 * WpPressThis::plugin_data()
+	 * Returns this plugin's meta data, from in-code plugin header comment
+	 *
+	 * @return array
+	 *@uses WP's get_plugin_data()
+	 */
+	public function plugin_data() {
+		return get_plugin_data( __FILE__, false, false );
+	}
+
+	/**
+	 * WpPressThis::plugin_data()
+	 * Returns this plugin's own version string, from in-code plugin header comment
+	 *
+	 * @return string The current plugin's version
+	 * @uses WpPressThis::plugin_data()
+	 */
+	public function plugin_version() {
+		$data = self::plugin_data();
+		return ( ! empty( $data ) && ! empty( $data['Version'] ) ) ? (string) $data['Version'] : 0;
 	}
 
 	/**
 	 * WpPressThis::runtime_url()
+	 * Returns this plugin's own runtime URL, which happens to masquerade/override as /wp-admin/press-this.php
 	 *
-	 * @return string|void Full URL to /admin/press-this.php in current install
+	 * @return string Full URL to /admin/press-this.php in current install
 	 * @uses admin_url()
 	 */
 	public function runtime_url() {
@@ -131,7 +179,7 @@ class WpPressThis {
 	/**
 	 * WpPressThis::plugin_dir_path()
 	 *
-	 * @return string|void Full URL to /admin/press-this.php in current install
+	 * @return string Full system path to /wp-content/plugins/press-this in current install
 	 * @uses __FILE__, plugin_dir_path()
 	 */
 	public function plugin_dir_path() {
@@ -141,7 +189,7 @@ class WpPressThis {
 	/**
 	 * WpPressThis::plugin_dir_url()
 	 *
-	 * @return string
+	 * @return string Full URL path to /wp-content/plugins/press-this in current install
 	 * @uses __FILE__, plugin_dir_url()
 	 */
 	public function plugin_dir_url() {
@@ -150,13 +198,15 @@ class WpPressThis {
 
 	/**
 	 * WpPressThis::shortcut_link_override()
+	 * Returns the bookmarklet's static code from /js/bookmarklet.js, with a local JS variable set to the current install's path to PT
 	 *
-	 * @return mixed Press This bookmarklet JS trigger found in /wp-admin/tools.php
+	 * @return string Press This bookmarklet JS trigger found in /wp-admin/tools.php
 	 */
 	public function shortcut_link_override() {
 		$url  = esc_js( self::runtime_url() . '?v=' . self::plugin_version() );
-		$link = "javascript: var u='{$url}';\n";
+		$link = "javascript:";
 		$link .= file_get_contents( self::plugin_dir_path() . '/js/bookmarklet.js' );
+		$link .= "WpPressThis_Bookmarklet('{$url}')";
 		return str_replace( array( "\r", "\n", "\t" ), '', $link );
 	}
 
@@ -179,10 +229,9 @@ class WpPressThis {
 	}
 
 	/**
-	 * WpPressThis::format_post_data_for_save()
+	 * WpPressThis::format_post_data_for_save( $status = 'draft' )
 	 *
 	 * @return array('post_title' => $title, 'post_content' => $content, 'post_status' => $post_status)
-	 *
 	 * @uses $_POST
 	 */
 	public function format_post_data_for_save( $status = 'draft' ) {
@@ -224,9 +273,17 @@ class WpPressThis {
 		return $post;
 	}
 
-	public function side_load_images( $post_id, $content ) {
-		$new_content      = $content;
-		$upload           = false;
+	/**
+	 * WpPressThis::side_load_images( $post_id, $content = '' )
+	 * Get the sources images and save them locally, fr posterity, unless we can't.
+	 *
+	 * @param $post_id int
+	 * @param $content string Current expected markup for PT
+	 * @return string New markup with old image URLs replaced with the local attachment ones if swapped
+	 * @uses current_user_can(), media_sideload_image(), is_wp_error()
+	 */
+	public function side_load_images( $post_id, $content = '' ) {
+		$new_content = $content;
 		if ( ! empty( $_POST['wppt_selected_img'] ) && current_user_can( 'upload_files' ) ) {
 			foreach( (array) $_POST['wppt_selected_img'] as $key => $image ) {
 				// Don't try to sideload file without a file extension, leads to WP upload error,
@@ -252,10 +309,10 @@ class WpPressThis {
 	}
 
 	/**
-	 * WpPressThis::save()
+	 * WpPressThis::save( $post_status = 'draft' )
+	 * Save the post as draft or published
 	 *
 	 * @param string $post_status
-	 *
 	 * @return bool|int|WP_Error
 	 */
 	public function save( $post_status = 'draft' ) {
@@ -296,80 +353,91 @@ class WpPressThis {
 		return $post_id;
 	}
 
-	public function make_backward_compatible() {
-		// Make Press This compatible with $_POST as well as $_GET, as appropriate ($_POST > $_GET), to remain backward compatible
-		$data = array_merge_recursive( $_POST, $_GET );
+	/**
+	 * WpPressThis::fetch_source_html( $url )
+	 *
+	 * @return string Source's HTML sanitized markup
+	 * @uses download_url(), is_wp_error(), wp_kses(), file_get_contents() , and unlink()
+	 */
+	public function fetch_source_html( $url ) {
+		// Download source page to tmp file
+		$source_tmp_file = ( ! empty( $url ) ) ? download_url( $url ) : '';
+		$source_content  = '';
+		if ( ! is_wp_error( $source_tmp_file ) && file_exists( $source_tmp_file ) ) {
+			// Get the content of the source page from the tmp file.
+			$source_content = wp_kses(
+				file_get_contents( $source_tmp_file ),
+				array (
+					'img' => array(
+						'src'      => array(),
+					),
+					'link' => array(
+						'rel'      => array(),
+						'itemprop' => array(),
+						'href'     => array(),
+					),
+					'meta' => array(
+						'property' => array(),
+						'name'     => array(),
+						'content'  => array(),
+					)
+				)
+			);
+			// All done with backward compatibility
+			// Let's do some cleanup, for good measure :)
+			unlink( $source_tmp_file );
+		}
+		return $source_content;
+	}
 
-		// Get the legacy QS params, or equiv POST data
-		$data['u'] = ( !empty( $data['u'] ) ) ? $data['u'] : '';
-		$data['s'] = ( !empty( $data['s'] ) ) ? $data['s'] : '';
-		$data['t'] = ( !empty( $data['t'] ) ) ? $data['t'] : '';
-
-		// If no _meta, _img or _links were passed via $_POST, fetch them from source as fallback, makes PT fully backward compatible
-		if ( empty( $data['_meta'] ) || empty( $data['_img'] ) || empty( $data['_links'] ) ) {
-			// If we indeed have a URL to fetch
-			if ( ! empty( $data['u'] ) ) {
-				// Download source page to tmp file
-				$source_tmp_file = ( ! empty( $data['u'] ) ) ? download_url( $data['u'] ) : '';
-				if ( ! is_wp_error( $source_tmp_file ) && file_exists( $source_tmp_file ) ) {
-					// Get the content of the source page from the tmp file.
-					$source_content = wp_kses(
-						file_get_contents( $source_tmp_file ),
-						array (
-							'img' => array(
-								'src'      => array(),
-							),
-							'link' => array(
-								'rel'      => array(),
-								'itemprop' => array(),
-								'href'     => array(),
-							),
-							'meta' => array(
-								'property' => array(),
-								'name'     => array(),
-								'content'  => array(),
-							)
-						)
-					);
-					// Fetch and gather <meta> data
-					if ( empty( $data['_meta'] ) ) {
-						if ( preg_match_all( '/<meta (.+)[\s]?\/>/  ', $source_content, $matches ) ) {
-							if ( !empty( $matches[0] ) ) {
-								foreach ( $matches[0] as $key => $value ) {
-									if ( preg_match( '/<meta[^>]+(property|name)="(.+)"[^>]+content="(.+)"[^>]+\/>/', $value, $new_matches ) )
-										$data['_meta'][ $new_matches[2] ] = $new_matches[3];
-								}
-							}
+	/**
+	 * WpPressThis::source_data_fetch_fallback()
+	 * Fetch and parse _meta, _img, and _links data from the source
+	 *
+	 * @param string $url
+	 * @param array $data Existing data array if you have one.
+	 *
+	 * @return array New data array
+	 * @uses self::fetch_source_html()
+	 */
+	public function source_data_fetch_fallback( $url, $data = array() ) {
+		if ( empty( $url ) )
+			return array();
+		// Download source page to tmp file
+		$source_content = self::fetch_source_html( $url );
+		// Fetch and gather <meta> data
+		if ( empty( $data['_meta'] ) ) {
+			if ( preg_match_all( '/<meta (.+)[\s]?\/>/  ', $source_content, $matches ) ) {
+				if ( !empty( $matches[0] ) ) {
+					foreach ( $matches[0] as $key => $value ) {
+						if ( preg_match( '/<meta[^>]+(property|name)="(.+)"[^>]+content="(.+)"[^>]+\/>/', $value, $new_matches ) )
+							$data['_meta'][ $new_matches[2] ] = $new_matches[3];
+					}
+				}
+			}
+		}
+		// Fetch and gather <img> data
+		if ( empty( $data['_img'] ) ) {
+			if ( preg_match_all( '/<img (.+)[\s]?\/>/', $source_content, $matches ) ) {
+				if ( !empty( $matches[0] ) ) {
+					foreach ( $matches[0] as $value ) {
+						if ( preg_match( '/<img[^>]+src="([^"]+)"[^>]+\/>/', $value, $new_matches ) ) {
+							$data['_img'][] = $new_matches[1];
 						}
 					}
-					// Fetch and gather <img> data
-					if ( empty( $data['_img'] ) ) {
-						if ( preg_match_all( '/<img (.+)[\s]?\/>/', $source_content, $matches ) ) {
-							if ( !empty( $matches[0] ) ) {
-								foreach ( $matches[0] as $value ) {
-									if ( preg_match( '/<img[^>]+src="([^"]+)"[^>]+\/>/', $value, $new_matches ) ) {
-										$data['_img'][] = $new_matches[1];
-									}
-								}
-							}
+				}
+			}
+		}
+		// Fetch and gather <link> data
+		if ( empty( $data['_links'] ) ) {
+			if ( preg_match_all( '/<link (.+)[\s]?\/>/', $source_content, $matches ) ) {
+				if ( !empty( $matches[0] ) ) {
+					foreach ( $matches[0] as $key => $value ) {
+						if ( preg_match( '/<link[^>]+(rel|itemprop)="([^"]+)"[^>]+href="([^"]+)"[^>]+\/>/', $value, $new_matches ) ) {
+							if ( 'alternate' == $new_matches[2] || 'thumbnailUrl' == $new_matches[2] || 'url' == $new_matches[2] )
+								$data['_links'][ $new_matches[2] ] = $new_matches[3];
 						}
 					}
-					// Fetch and gather <link> data
-					if ( empty( $data['_links'] ) ) {
-						if ( preg_match_all( '/<link (.+)[\s]?\/>/', $source_content, $matches ) ) {
-							if ( !empty( $matches[0] ) ) {
-								foreach ( $matches[0] as $key => $value ) {
-									if ( preg_match( '/<link[^>]+(rel|itemprop)="([^"]+)"[^>]+href="([^"]+)"[^>]+\/>/', $value, $new_matches ) ) {
-										if ( 'alternate' == $new_matches[2] || 'thumbnailUrl' == $new_matches[2] || 'url' == $new_matches[2] )
-											$data['_links'][ $new_matches[2] ] = $new_matches[3];
-									}
-								}
-							}
-						}
-					}
-					// All done with backward compatibility
-					// Let's do some cleanup, for good measure :)
-					unlink( $source_tmp_file );
 				}
 			}
 		}
@@ -377,35 +445,61 @@ class WpPressThis {
 	}
 
 	/**
+	 * WpPressThis::merge_or_fetch_data()
+	 * This code handles making our version of Press This backward compatible with the previous/legacy version by supporting its query string params
+	 *
+	 * @return array
+	 */
+	public function merge_or_fetch_data() {
+		// Merge $_POST and $_GET, as appropriate ($_POST > $_GET), to remain backward compatible
+		$data = array_merge_recursive( $_POST, $_GET );
+
+		// Get the legacy QS params, or equiv POST data
+		$data['u'] = ( !empty( $data['u'] ) ) ? $data['u'] : '';
+		$data['s'] = ( !empty( $data['s'] ) ) ? $data['s'] : '';
+		$data['t'] = ( !empty( $data['t'] ) ) ? $data['t'] : '';
+
+		// If no _meta (a new thing) was passed via $_POST, fetch data from source as fallback, makes PT fully backward compatible
+		if ( empty( $data['_meta'] ) && ! empty( $data['u'] ) ) {
+			$data = self::source_data_fetch_fallback( $data['u'], $data );
+		}
+		return $data;
+	}
+
+	/**
 	 * WpPressThis::serve_app_html()
+	 * Serves the app's base HTML, which in turns calls the load.js
 	 *
 	 * @uses $_POST, WpPressThis::runtime_url(), WpPressThis::plugin_dir_url()
 	 */
 	public function serve_app_html() {
 		// Get data, new (POST) and old (GET)
-		$data = self::make_backward_compatible();
+		$data                     = self::merge_or_fetch_data();
 
-		// Get more env vars
-		$runtime_url              = self::strip_url_scheme( self::runtime_url() );
+		// Get site settings array/data
+		$site_settings            = self::press_this_site_settings();
+
+		// Get a fresh nonce
 		$nonce                    = wp_create_nonce( 'press_this_site_settings' );
 
 		// Set the passed data
-		$data['_version']         = self::plugin_version();
-		$data['_runtime_url']     = $runtime_url;
-		$data['_plugin_dir_url']  = self::plugin_dir_url();
-		$data['_ajax_url']        = self::strip_url_scheme( admin_url( 'admin-ajax.php' ) );
+		$data['_version']         = $site_settings['version'];
+		$data['_runtime_url']     = $site_settings['runtime_url'];
+		$data['_plugin_dir_url']  = $site_settings['plugin_dir_url'];
+		$data['_ajax_url']        = $site_settings['ajax_url'];
 		$data['_nonce']           = $nonce;
 
 		// JSON encode passed data
 		$json                     = json_encode( $data );
 
 		// Generate some include paths
-		$js_inc_dir               = preg_replace( '/^(.+)\/wp-admin\/.+$/', '\1/wp-includes/js', $runtime_url );
-		$json_js_inc              = $js_inc_dir . '/json2.min.js';
-		$jquery_js_inc            = $js_inc_dir . '/jquery/jquery.js';
-		$app_css_inc              = self::plugin_dir_url() . '/css/press-this.css';
-		$load_js_inc              = self::plugin_dir_url() . '/js/load.js';
-		$form_action              = $runtime_url;
+		$wp_js_inc_dir            = preg_replace( '/^(.+)\/wp-admin\/.+$/', '\1/wp-includes/js', $site_settings['runtime_url'] );
+		$json_js_inc              = $wp_js_inc_dir . '/json2.min.js';
+		$jquery_js_inc            = $wp_js_inc_dir . '/jquery/jquery.js';
+		$app_css_inc              = $site_settings['plugin_dir_url'] . '/css/press-this.css';
+		$load_js_inc              = $site_settings['plugin_dir_url'] . '/js/load.js';
+		$form_action              = $site_settings['runtime_url'];
+		$svg_icons_inc            = self::plugin_dir_path() . '/images/icons/icons.svg';
 
 		// Echo HTML
 		echo <<<________HTMLDOC
@@ -423,6 +517,17 @@ class WpPressThis {
 	<script src="{$load_js_inc}" language="JavaScript"></script>
 </head>
 <body>
+________HTMLDOC;
+
+		// Include generated SVG icons file
+		if ( file_exists( $svg_icons_inc ) )
+			require_once( $svg_icons_inc );
+
+		echo <<<________HTMLDOC
+	<div class="adminbar">
+		<h1 class="current-site"><div href="#" class="dashicons dashicons-wordpress-alt"><svg class="icon"><use xlink:href="#dashicons-wordpress-alt" /></svg></div><a href="#" target="_blank"></a></h1>
+		<a href="#" class="dashicons dashicons-admin-settings"><svg class="icon"><use xlink:href="#dashicons-admin-settings" /></svg>Settings</a>
+	</div>
 	<div id='wppt_app_container' class="editor">
 		<h2 id='wppt_title_container' class="post__title" contenteditable="true"></h2>
 		<div id='wppt_featured_image_container' class="featured-image-container">
@@ -453,15 +558,34 @@ ________HTMLDOC;
 
 	/**
 	 * WpPressThis::press_this_ajax_site_settings()
+	 * App and site settings data, including i18n strings for the client-side
 	 *
 	 * @uses admin_url(), wp_create_nonce()
 	 */
 	public function press_this_site_settings() {
-		$domain      = 'press-this';
-		$plugin_data = get_plugin_data( __FILE__, false, false );
+		$domain       = 'press-this';
+		$current_user = wp_get_current_user();
+		$site_name    = get_bloginfo( 'name', 'display' );
+		$site_url     = self::strip_url_scheme( home_url( '/' ) );
+		$users_sites  = array();
+		foreach ( get_blogs_of_user( $current_user->ID ) as $site_id => $site_info ) {
+			// Do want to include self in the menu, with proper scheme. But just once.
+			if ( empty( $site_info->siteurl ) || isset( $users_sites[ $site_info->siteurl ] ) )
+				continue;
+			$users_sites[ self::set_url_scheme( $site_info->siteurl ) ] = $site_info->blogname;
+		}
 		return array(
-			'version'        => ( ! empty( $plugin_data ) && ! empty( $plugin_data['Version'] ) ) ? $plugin_data['Version'] : 0,
+			'version'        => self::plugin_version(),
+			'user_id'        => (int) $current_user->ID,
+			'blog_id'        => (int) get_current_blog_id(),
+			'blog_name'      => $site_name,
+			'blog_url'       => $site_url,
+			'runtime_url'    => self::strip_url_scheme( self::runtime_url() ),
+			'plugin_dir_url' => self::plugin_dir_url(),
+			'ajax_url'       => self::strip_url_scheme( admin_url( 'admin-ajax.php' ) ),
+			'instance_sites' => $users_sites,
 			'i18n'           => array(
+				'Press This!'            => __('Press This!', $domain ),
 				'Welcome to Press This!' => __('Welcome to Press This!', $domain ),
 				'Source:'                => __( 'Source:', $domain ),
 				'Show other images'      => __( 'Show other images', $domain ),
@@ -471,12 +595,14 @@ ________HTMLDOC;
 				'New Post'               => __( 'New Post', $domain ),
 				'Start typing here.'     => __( 'Start typing here.', $domain ),
 				'Sorry, but an unexpected error occurred.' => __( 'Sorry, but an unexpected error occurred.', $domain ),
+				'You should upgrade <a href="%s" target="_blank">your bookmarklet</a> to the latest version!' => __( 'You should upgrade <a href="%s" target="_blank">your bookmarklet</a> to the latest version!', $domain )
 			),
 		);
 	}
 
 	/**
 	 * WpPressThis::press_this_ajax_site_settings()
+	 * Ajax endpoint to serve the results of WpPressThis::press_this_ajax_site_settings()
 	 *
 	 * @uses admin_url(), wp_create_nonce()
 	 */
@@ -486,6 +612,10 @@ ________HTMLDOC;
 		die();
 	}
 
+	/**
+	 * @param $post_id
+	 * @param string $post_status
+	 */
 	public function post_save_json_response( $post_id, $post_status = 'draft' ) {
 		header( 'content-type: application/json' );
 		if ( is_wp_error( $post_id ) || intval( $post_id ) < 1 ) {
@@ -497,12 +627,92 @@ ________HTMLDOC;
 		die();
 	}
 
+	/**
+	 * Ajax endpoint save a draft post
+	 */
 	public function press_this_ajax_draft_post() {
 		self::post_save_json_response( self::save( 'draft' ) );
 	}
 
+	/**
+	 * Ajax endpoint publish a post
+	 */
 	public function press_this_ajax_publish_post() {
 		self::post_save_json_response( self::save( 'publish' ), 'published' );
+	}
+
+	/**
+	 * Experimental Ajax endpoint to publish a site-specific Chrome extension manifest
+	 */
+	public function  press_this_ajax_chrome_ext_manifest() {
+		$plugin_data = self::plugin_data();
+		$plugin_name = ( ! empty( $plugin_data['Name'] ) ) ? $plugin_data['Name'] : __( 'Press This!', 'press-this' );
+		$plugin_desc = ( ! empty( $plugin_data['Description'] ) ) ? $plugin_data['Description'] : __( 'Posting images, links, and cat gifs will never be the same.', 'press-this' );
+		$icon        = './images/wordpress-logo-notext-rgb.png';
+		$type        = ( true == false ) ? 'app' : 'extension';
+		$manifest = array(
+			'manifest_version' => 2,
+			'name'             => $plugin_name,
+			'description'      => $plugin_desc,
+			'version'          => self::plugin_version(),
+			'icons'            => array(
+				'128' => $icon,
+			),
+			'web_accessible_resources' => array( $icon ),
+		);
+
+		if ( 'app' == $type ) {
+			$manifest['permissions'] = array(
+				'unlimitedStorage',
+				'notifications',
+				'geolocation',
+				'clipboardRead',
+				'clipboardWrite',
+				'background',
+				// 'activeTab',
+				// preg_replace( '/^(.+)\/wp-admin\/.+$/', '\1/', self::runtime_url() ),
+			);
+			$manifest['app']         = array(
+				'launch' => array(
+					'web_url' => self::runtime_url(),
+				),
+			);
+		} else {
+			$manifest['permissions'] = array(
+				'activeTab',
+				// preg_replace( '/^(.+)\/wp-admin\/.+$/', '\1/', self::runtime_url() ),
+			);
+			$manifest['background'] = array(
+				'scripts'    => array(
+					'./js/ext-chrome-background.js'
+					// "vendor/jquery-2.0.3.min.js", "background-lib.js", "background.js"
+				),
+				'persistent' => false,
+			);
+			$manifest['browser_action'] = array(
+				'default_title' => $plugin_name,
+			);
+		}
+		/*
+		$manifest['urls'] = array(
+			preg_replace( '/^http(.+)\/wp-admin\/.+$/', '*://\1/', self::runtime_url() )
+		);
+		$manifest['intents'] = array(
+			'http://webintents.org/share' => array(
+				'type' => array(
+					'image/*',
+					'video/*',
+					'text/*'
+				),
+				'href' => self::runtime_url(),
+				'title' => 'Share this on your WordPress blog',
+				'disposition'=> 'window'
+			),
+		);
+		*/
+		header( 'content-type: application/json' );
+		echo json_encode( $manifest );
+		die();
 	}
 }
 

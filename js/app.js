@@ -212,6 +212,29 @@
  * RENDERING FUNCTIONS
  *************************************************************** */
 
+			function render_notice( msg, error ) {
+				error = ( true === error );
+				var messages_div = $( '#messages-div' );
+				if ( ! messages_div || ! messages_div.html() )
+					messages_div = $('<div id="messages-div"></div>').insertBefore('#wppt_app_container');
+				messages_div.append( '<p class="' + ( ( error ) ? 'error': 'notice' ) +'">' + msg + '</p>' );
+			}
+
+			function render_error( msg ) {
+				render_notice( msg, true );
+			}
+
+			function render_startup_notices() {
+				if ( data.v && data._version && data.v != data._version ) {
+					render_notice( __( 'You should upgrade <a href="%s" target="_blank">your bookmarklet</a> to the latest version!').replace( '%s', site_config.runtime_url.replace( /^(.+)\/press-this\.php(\?.*)?/, '$1/tools.php' ) ) );
+				}
+			}
+
+			function render_admin_bar() {
+				$('.current-site a').on( 'click', function(){
+				}).attr( 'href', site_config.blog_url ).text( site_config.blog_name );
+			}
+
 			function render_suggested_title() {
 				if ( ! suggested_title_str || ! suggested_title_str.length )
 					return;
@@ -351,11 +374,13 @@
 			function render(){
 				// We're on!
 				$("head title").text(__( 'Welcome to Press This!' ));
+				render_admin_bar();
 				render_suggested_title();
 				render_featured_image();
 				render_available_images();
 				render_suggested_content();
 				render_default_form_field_values();
+				render_startup_notices();
 				return true;
 			}
 
