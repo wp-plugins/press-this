@@ -3,7 +3,7 @@
 Plugin Name: Press This
 Plugin URI: http://wordpress.org/extend/plugins/press-this/
 Description: Posting images, links, and cat gifs will never be the same.
-Version: 0.0.2
+Version: 0.0.3
 Author: Press This Team
 Author URI: https://corepressthis.wordpress.com/
 Text Domain: press-this
@@ -106,7 +106,7 @@ class WpPressThis {
 					? preg_replace( '/^([^\?]+)(\?.*)?$/', '\1', $_SERVER['REQUEST_URI'] )
 					: '';
 		return ( preg_match('/\/wp-admin\/?$/', $script_name) || ! preg_match('/\.php$/', $script_name ) )
-			? rtrim( $script_name, '/' ) . '/index.php'
+			? untrailingslashit( $script_name ) . '/index.php'
 			: $script_name;
 	}
 
@@ -183,7 +183,7 @@ class WpPressThis {
 	 * @uses __FILE__, plugin_dir_path()
 	 */
 	public function plugin_dir_path() {
-		return rtrim( plugin_dir_path( __FILE__ ), '/' );
+		return untrailingslashit( plugin_dir_path( __FILE__ ) );
 	}
 
 	/**
@@ -193,7 +193,7 @@ class WpPressThis {
 	 * @uses __FILE__, plugin_dir_url()
 	 */
 	public function plugin_dir_url() {
-		return rtrim( self::strip_url_scheme( plugin_dir_url( __FILE__ ) ), '/' );
+		return untrailingslashit( self::strip_url_scheme( plugin_dir_url( __FILE__ ) ) );
 	}
 
 	/**
@@ -221,11 +221,48 @@ class WpPressThis {
 		if ( false === strpos( self::runtime_url(), self::script_name() ) )
 			return;
 
-		if ( ! current_user_can( 'edit_posts' ) || ! current_user_can( get_post_type_object( 'post' )->cap->create_posts ) ) {
-			wp_die( __( 'Cheatin&#8217; uh?' ) );
+		if ( ! empty( $_FILES['wppt_file'] ) ) {
+			if ( current_user_can('upload_files') )
+				self::process_file_upload( $_FILES['wppt_file'], $_POST['wppt_nonce'] );
+			else
+				self::refuse_file_upload( 'current_user_can' );
+		} else {
+			if ( ! current_user_can( 'edit_posts' ) || ! current_user_can( get_post_type_object( 'post' )->cap->create_posts ) )
+				wp_die( __( 'Cheatin&#8217; uh?' ) );
+			self::serve_app_html();
+		}
+	}
+
+	public function process_file_upload( $file, $nonce ) {
+		if ( ! wp_verify_nonce( $nonce, 'press_this' ) ) {
+			self::refuse_file_upload( 'wp_verify_nonce' );
+			return;
 		}
 
-		self::serve_app_html();
+		if ( ! function_exists( 'wp_handle_upload' ) )
+			require_once( ABSPATH . 'wp-admin/includes/file.php' );
+
+		$file_data = wp_handle_upload( $file, array( 'test_form' => false ) );
+
+		if ( empty( $file_data ) || empty( $file_data['url'] ) ) {
+			self::refuse_file_upload( 'file_data' );
+			return;
+		}
+		?>
+		<script language="javascript" type="text/javascript">
+			parent.wp_pressthis_app.file_upload_success( '<?php echo esc_url( $file_data['url'] ); ?>', '<?php echo esc_js( strtolower( $file_data['type'] ) ); ?>' );
+		</script>
+		<?php
+		die();
+	}
+
+	public function refuse_file_upload( $context ) {
+		?>
+		<script language="javascript" type="text/javascript">
+			parent.wp_pressthis_app.render_error( '<?php echo esc_js( __( 'Sorry, but your upload failed.' ) ); ?> [<?php echo $context; ?>]' );
+		</script>
+		<?php
+		die();
 	}
 
 	/**
@@ -316,6 +353,10 @@ class WpPressThis {
 	 * @return bool|int|WP_Error
 	 */
 	public function save( $post_status = 'draft' ) {
+		if ( ! wp_verify_nonce( $_POST['wppt_nonce'], 'press_this' ) ) {
+			return false;
+		}
+
 		$wp_error      = false;
 		$data          = self::format_post_data_for_save( $post_status );
 
@@ -455,7 +496,7 @@ class WpPressThis {
 		$data = array_merge_recursive( $_POST, $_GET );
 
 		// Get the legacy QS params, or equiv POST data
-		$data['u'] = ( !empty( $data['u'] ) ) ? $data['u'] : '';
+		$data['u'] = ( !empty( $data['u'] ) && preg_match( '/^https?:/', $data['u'] ) ) ? $data['u'] : '';
 		$data['s'] = ( !empty( $data['s'] ) ) ? $data['s'] : '';
 		$data['t'] = ( !empty( $data['t'] ) ) ? $data['t'] : '';
 
@@ -480,7 +521,7 @@ class WpPressThis {
 		$site_settings            = self::press_this_site_settings();
 
 		// Get a fresh nonce
-		$nonce                    = wp_create_nonce( 'press_this_site_settings' );
+		$nonce                    = wp_create_nonce( 'press_this' );
 
 		// Set the passed data
 		$data['_version']         = $site_settings['version'];
@@ -489,8 +530,9 @@ class WpPressThis {
 		$data['_ajax_url']        = $site_settings['ajax_url'];
 		$data['_nonce']           = $nonce;
 
-		// JSON encode passed data
-		$json                     = json_encode( $data );
+		// JSON encode passed data and site settings
+		$json_data                = json_encode( $data );
+		$json_site_settings       = json_encode( $site_settings );
 
 		// Generate some include paths
 		$wp_js_inc_dir            = preg_replace( '/^(.+)\/wp-admin\/.+$/', '\1/wp-includes/js', $site_settings['runtime_url'] );
@@ -499,7 +541,17 @@ class WpPressThis {
 		$app_css_inc              = $site_settings['plugin_dir_url'] . '/css/press-this.css';
 		$load_js_inc              = $site_settings['plugin_dir_url'] . '/js/load.js';
 		$form_action              = $site_settings['runtime_url'];
+		$upload_action            = preg_replace( '/^(.+)\/press-this\.php$/', '\1/media-upload.php', $site_settings['runtime_url'] ) . '?referer=wptuts-settings&type=image&TB_iframe=true&post_id=0';
 		$svg_icons_inc            = self::plugin_dir_path() . '/images/icons/icons.svg';
+		$sites_list               = '';
+
+		foreach( (array) $site_settings['instance_sites'] as $instance_url => $instance_name ) {
+			$instance_url = untrailingslashit( $instance_url );
+			$sites_list .= '<li '
+						.  ' class="wppt_site_entry ' . ( ( untrailingslashit( $site_settings['blog_url'] ) == self::strip_url_scheme( $instance_url ) ) ? 'entry-selected': '' ) . '" '
+						.  ' data-url="' . esc_url( $instance_url ) . '">'
+			            .  esc_html( $instance_name ) . '</li>';
+		}
 
 		// Echo HTML
 		echo <<<________HTMLDOC
@@ -507,10 +559,11 @@ class WpPressThis {
 <html>
 <head lang="en">
 	<meta charset="UTF-8">
-	<title></title>
+	<title>Press This</title>
 	<link rel='stylesheet' id='all-css' href='{$app_css_inc}' type='text/css' media='all' />
 	<script language="JavaScript">
-		window.wp_pressthis_data = {$json};
+		window.wp_pressthis_data   = {$json_data};
+		window.wp_pressthis_config = {$json_site_settings};
 	</script>
 	<script src="{$json_js_inc}" language="JavaScript"></script>
 	<script src="{$jquery_js_inc}" language="JavaScript"></script>
@@ -524,13 +577,29 @@ ________HTMLDOC;
 			require_once( $svg_icons_inc );
 
 		echo <<<________HTMLDOC
-	<div class="adminbar">
+	<div id="wppt_adminbar" class="adminbar">
 		<h1 class="current-site"><div href="#" class="dashicons dashicons-wordpress-alt"><svg class="icon"><use xlink:href="#dashicons-wordpress-alt" /></svg></div><a href="#" target="_blank"></a></h1>
+		<ul id="wppt_sites" class="">
+			{$sites_list}
+			<li>
+				<form id="wppt_sites_form" name="wppt_sites_form" action="{$upload_action}" method="GET" class="">
+					<input type="text" name="wppt_new_site" id="wppt_new_site" class="" value="" placeholder="Enter any WordPress URL" />
+					<input type="submit" name="wppt_new_site_submit" id="wppt_new_site_submit" class="" value="Add" />
+				</form>
+			</li>
+		</ul>
 		<a href="#" class="dashicons dashicons-admin-settings"><svg class="icon"><use xlink:href="#dashicons-admin-settings" /></svg>Settings</a>
+	</div>
+	<div id="wppt_scanbar" class="scan">
+		<form action="{$form_action}" method="GET">
+			<input type="url" name="u" id="wppt_url_scan" class="scan__url" value="" placeholder="Enter a URL to scan" />
+			<input type="submit" name="wppt_url_scan_submit" id="wppt_url_scan_submit" class="scan__submit" value="Scan" />
+		</form>
 	</div>
 	<div id='wppt_app_container' class="editor">
 		<h2 id='wppt_title_container' class="post__title" contenteditable="true"></h2>
 		<div id='wppt_featured_image_container' class="featured-image-container">
+			<img src="" id="wppt_selected_img" class="featured-image" width="400" height="300" />
 			<a href="#" id="wppt_other_images_switch" class="other-images__switch button--secondary"></a>
 			<div id='wppt_other_images_widget' class="other-images">
 				<div id='wppt_other_images_container'></div>
@@ -539,6 +608,13 @@ ________HTMLDOC;
 		<div id='wppt_suggested_content_container' class="editor--content" contenteditable="true"></div>
 	</div>
 	<div class="actions">
+		<form id="wppt_file_upload" name="wppt_file_upload" action="{$form_action}" method="POST" enctype="multipart/form-data" target="wppt_upload_iframe" class="" style="display:inline-block;width:35%;margin:0.7em 1.5em;">
+			<input type="hidden" name="wppt_nonce" id="wppt_upload_nonce_field" value="{$nonce}"/>
+			<input type="button" class="button--primary" name="wppt_file_button" id="wppt_file_button" value="Upload Photo"/>
+			<input type="file" name="wppt_file" id="wppt_file" value="" style="width:0;height:0;visibility:hidden;" />
+			<iframe id="wppt_upload_iframe" name="wppt_upload_iframe" src="about:blank" style="width:0;height:0;visibility:hidden;"></iframe>
+		</form>
+
 		<form id="wppt_form" class="post-actions" name="wppt_form" method="POST" action="{$form_action}" target="_self">
 			<input type="hidden" name="wppt_nonce" id="wppt_nonce_field" value="{$nonce}"/>
 			<input type="hidden" name="wppt_title" id="wppt_title_field" value=""/>
@@ -546,8 +622,8 @@ ________HTMLDOC;
 			<input type="hidden" name="wppt_selected_img" id="wppt_selected_img_field" value=""/>
 			<input type="hidden" name="wppt_source_url" id="wppt_source_url_field" value=""/>
 			<input type="hidden" name="wppt_source_name" id=wppt_source_name_field" value=""/>
-			<input type="submit" class="button--subtle" name="wppt_draft" id="wppt_draft_field" value=""/>
-			<input type="submit" class="button--primary" name="wppt_publish" id="wppt_publish_field" value=""/>
+			<input type="submit" class="button--subtle" name="wppt_draft" id="wppt_draft_field" value="Save Draft"/>
+			<input type="submit" class="button--primary" name="wppt_publish" id="wppt_publish_field" value="New Post"/>
 		</form>
 	</div>
 </body>
@@ -572,14 +648,14 @@ ________HTMLDOC;
 			// Do want to include self in the menu, with proper scheme. But just once.
 			if ( empty( $site_info->siteurl ) || isset( $users_sites[ $site_info->siteurl ] ) )
 				continue;
-			$users_sites[ self::set_url_scheme( $site_info->siteurl ) ] = $site_info->blogname;
+			$users_sites[ rtrim( self::set_url_scheme( $site_info->siteurl ), '/' ) ] = $site_info->blogname;
 		}
 		return array(
 			'version'        => self::plugin_version(),
 			'user_id'        => (int) $current_user->ID,
 			'blog_id'        => (int) get_current_blog_id(),
 			'blog_name'      => $site_name,
-			'blog_url'       => $site_url,
+			'blog_url'       => rtrim( $site_url, '/' ),
 			'runtime_url'    => self::strip_url_scheme( self::runtime_url() ),
 			'plugin_dir_url' => self::plugin_dir_url(),
 			'ajax_url'       => self::strip_url_scheme( admin_url( 'admin-ajax.php' ) ),
@@ -594,8 +670,15 @@ ________HTMLDOC;
 				'Save Draft'             => __( 'Save Draft', $domain ),
 				'New Post'               => __( 'New Post', $domain ),
 				'Start typing here.'     => __( 'Start typing here.', $domain ),
+				'Enter a URL to scan'    => __( 'Enter a URL to scan', $domain ),
+				'Scan'                   => __( 'Scan', $domain ),
+				'Enter a WordPress URL'  => __( 'Enter a WordPress URL', $domain ),
+				'Add'                    => __( 'Add', $domain ),
+				'Upload Photo'           => __( 'Upload Photo', $domain ),
+				'Sorry, but your upload failed.' => __( 'Sorry, but your upload failed.', $domain ),
 				'Sorry, but an unexpected error occurred.' => __( 'Sorry, but an unexpected error occurred.', $domain ),
-				'You should upgrade <a href="%s" target="_blank">your bookmarklet</a> to the latest version!' => __( 'You should upgrade <a href="%s" target="_blank">your bookmarklet</a> to the latest version!', $domain )
+				'You should upgrade <a href="%s" target="_blank">your bookmarklet</a> to the latest version!' => __( 'You should upgrade <a href="%s" target="_blank">your bookmarklet</a> to the latest version!', $domain ),
+				'Please limit your uploads to photos. The file is still in the media library, and can be used in a new post, or <a href="%s" target="_blank">downloaded here</a>.' => __( 'Please limit your uploads to photos. The file is still in the media library, and can be used in a new post, or <a href="%s" target="_blank">downloaded here</a>.', $domain ),
 			),
 		);
 	}
