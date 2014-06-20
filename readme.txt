@@ -4,7 +4,7 @@ Donate link: http://wordpressfoundation.org/donate/
 Tags: post, quick-post, photo-post
 Requires at least: 3.9
 Tested up to: 4.0
-Stable tag: 0.0.4.1
+Stable tag: 0.0.4.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -71,6 +71,14 @@ Development of this plugin is done on [Github](https://github.com/MichaelArestad
  * Lots of backend work to start moving towards multiple media types and selection.
  * Still alpha level code.
 
-### 0.0.4.1
+= 0.0.4.1 =
  * PHP compatibility updates: some of our syntax could error on some PP versions.
+ * Still alpha level code.
+
+= 0.0.4.2 =
+ * Added <meta name="viewport" content="width=device-width"> to make it extra responsive on mobile.
+ * Still alpha level code.
+
+= 0.0.4.3 =
+ * Improving our github to svn tool flow
  * Still alpha level code.
