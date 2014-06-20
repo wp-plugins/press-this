@@ -4,7 +4,7 @@ Donate link: http://wordpressfoundation.org/donate/
 Tags: post, quick-post, photo-post
 Requires at least: 3.9
 Tested up to: 4.0
-Stable tag: 0.0.3
+Stable tag: 0.0.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,4 +61,12 @@ Development of this plugin is done on [Github](https://github.com/MichaelArestad
  * Continued work on adding/editing/removing a user's different Press This instances.
  * Major UI/UX improvements.
  * Major backend improvements.
+ * Still alpha level code.
+
+= 0.0.4 =
+ * Dropped the iframe mode to an experimental file devs can play with, now defaulting to popup for better security and less fighting browsers on sameorigin policies.
+ * Improved UI/UX: new icons and related behaviors, etc.
+ * Better photo selection experience, including when uploading.
+ * Ability to dismiss having a photo.
+ * Lots of backend work to start moving towards multiple media types and selection.
  * Still alpha level code.

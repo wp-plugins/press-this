@@ -23,7 +23,6 @@ module.exports = function(grunt) {
                 options: {
                     // Can be nested, compact, compressed, expanded
                     style: 'expanded',
-                    require: 'susy',
                     sourcemap: true
                 },
                 files: {
@@ -91,7 +90,7 @@ module.exports = function(grunt) {
                     }
                 },
                 files: {
-                    'images/icons/icons.svg': ['images/icons/*.svg']
+                    'images/icons/icons.svg': ['images/icons/*.svg', '!images/icons/icons.svg']
                 },
             }
         },
@@ -108,16 +107,8 @@ module.exports = function(grunt) {
             // },
             css: {
                 files: ['scss/*.scss', 'scss/**/*.scss'],
-                tasks: ['sass'],
+                tasks: ['sass', 'autoprefixer'],
                 options: {
-                    spawn: false,
-                }
-            },
-            autoprefixer: {
-                files: ['css/*.css', 'css/**/*.css'],
-                tasks: ['autoprefixer'],
-                options: {
-                    livereload: true,
                     spawn: false,
                 }
             },

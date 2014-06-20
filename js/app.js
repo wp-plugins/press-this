@@ -1,9 +1,10 @@
 ( function( $ ) {
 	$( document ).ready(function( $ ) {
 		var WpPressThis_App = function() {
-			var site_config           = window.wp_pressthis_config || {},
+			var loader                = window.wp_pressthis_loader || {},
+				site_config           = loader.site_config || {},
+				ux_context            = loader.ux_context || 'top',
 				data                  = window.wp_pressthis_data || {},
-				ux_context            = window.wp_pressthis_ux || 'top',
 				largest_width         = parseInt( $( document ).width() - 60 ) || 450,
 				smallest_width        = 64,
 				current_width         = parseInt( largest_width ) || 450,
@@ -18,9 +19,9 @@
  * HELPER FUNCTIONS
  *************************************************************** */
 
-			function __( str ) {
-				return ( ! site_config || ! site_config.i18n || ! site_config.i18n[str] || ! site_config.i18n[str].length )
-					? str : site_config.i18n[str];
+			function __( key ) {
+				return ( ! site_config || ! site_config.i18n || ! site_config.i18n[key] || ! site_config.i18n[key].length )
+					? key : site_config.i18n[key];
 			}
 
 			// Source: https://stackoverflow.com/questions/1219860/html-encoding-in-javascript-jquery/1219983#1219983
@@ -82,7 +83,7 @@
 
 			function get_suggested_title( data ) {
 				if ( ! data || data.length )
-					return __( 'New Post' );
+					return __( 'new-post' );
 
 				var title='';
 
@@ -101,14 +102,14 @@
 				}
 
 				if ( ! title.length)
-					title = __( 'New Post' );
+					title = __( 'new-post' );
 
 				return title.replace(/\\/g, '');
 			}
 
 			function get_suggested_content( data ) {
 				if ( ! data || data.length )
-					return __( 'Start typing here.' );
+					return __( 'start-typing-here' );
 
 				var content   = '',
 					title     = get_suggested_title( data ),
@@ -133,15 +134,15 @@
 					: '' );
 
 				// Add a source attribution if there is one available.
-				if ( ( title.length || site_name.length ) && url.length ) {
+				if ( ( ( title.length && __( 'new-post' ) != title ) || site_name.length ) && url.length ) {
 					content += '<p>'
-					+ __( 'Source:' )
+					+ __( 'source' )
 					+ ' <cite id="wppt_suggested_content_source"><a href="'+ encodeURI( url ) +'">'+ html_encode( title || site_name ) +'</a></cite>'
 					+ '</p>';
 				}
 
 				if ( ! content.length )
-					content = __( '<p>Start typing here.</p>' );
+					content = __( 'start-typing-here' );
 
 				return content.replace(/\\/g, '');
 			}
@@ -224,7 +225,23 @@
 				return interesting_imgs;
 			}
 
-			function button_clicks(e, action) {
+			function show_spinner( messages ) {
+				$('#wppt_spinner').addClass('show');
+				$('[class^="button--"]').each(function(k, v){
+					$(this).attr('disabled', 'disabled');
+				});
+			}
+
+			function hide_spinner() {
+				$('#wppt_spinner').removeClass('show');
+				$('[class^="button--"]').each(function(k, v){
+					$(this).removeAttr('disabled');
+				});
+			}
+
+			function submit_post(e, action) {
+				show_spinner();
+				maybe_clear_suggested_content_placeholder();
 				var form = $('#wppt_form');
 				if ( 'publish' !== action )
 					action = 'draft';
@@ -237,38 +254,79 @@
 					data: data,
 					success: function(r){
 						if ( r.error ) {
-							console.log(r.error);
-							alert(__('Sorry, but an unexpected error occurred.'));
+							render_error( __('unexpected-error') );
+							hide_spinner();
 						} else {
 							if ( 'published' == r.post_status )
-								window.top.location.href = r.post_permalink;
+								if ( 'popup' == ux_context && window.opener && window.opener.location ) {
+									window.opener.location.href = r.post_permalink;
+									self.close();
+								} else {
+									window.top.location.href = r.post_permalink;
+								}
 							else
-								window.self.location.href = './post.php?post=' + r.post_id + '&action=edit';
+								window.top.location.href = './post.php?post=' + r.post_id + '&action=edit';
 						}
 					}
 				});
 			}
 
-			function show_other_images() {
-				$( '#wppt_other_images_switch' ).on('click', function(){
-					show_selected_image();
-				}).text( __( 'Hide other images' ) );
-				$( '#wppt_featured_image_container' ).addClass( 'other-images--visible').show();
+			function show_all_media() {
+				$( '#wppt_all_media_switch' ).click(function(){
+					show_selected_media();
+				}).attr(
+					'title', __( 'show-selected-media' )
+				);
+				$( '#wppt_featured_image_container' ).addClass( 'all-media--visible').show();
 				$( '#wppt_selected_img').hide();
+				$('#wppt_no_image');
 			}
 
-			function show_selected_image() {
-				$( '#wppt_other_images_switch').on('click', function(){
-					show_other_images();
-				}).text( __( 'Show other images' ) );
-				$( '#wppt_selected_img').show();
-				$( '#wppt_featured_image_container' ).removeClass('other-images--visible').show();
+			function show_selected_media() {
+				if ( '' == $( '#wppt_selected_img_field' ).val() ) {
+					hide_selected_media();
+					return;
+				}
+				$( '#wppt_all_media_switch').click(function(){
+					show_all_media();
+				}).attr(
+					'title', __( 'show-all-media' )
+				);
+				$( '#wppt_selected_img').css( 'display', 'block' );
+				$( '#wppt_featured_image_container' ).removeClass('all-media--visible no-media').show();
+				$('#wppt_no_image');
 			}
 
-			function set_selected_image( src ) {
+			function hide_selected_media() {
+				$( '#wppt_all_media_switch').click(function(){
+						show_all_media();
+				}).attr(
+					'title', __( 'show-all-media' )
+				);
+				$( '#wppt_selected_img').hide();
+				$( '#wppt_featured_image_container' ).removeClass('all-media--visible no-media').show();
+				$('#wppt_no_image');
+			}
+
+			function show_nomedia_button() {
+				$('#wppt_no_image').click(function(){
+						unset_selected_media();
+						$( '#wppt_featured_image_container' ).addClass('no-media');
+				}).attr(
+					'title', __( 'no-media' )
+				);
+			}
+
+			function set_selected_media( src ) {
 				$( '#wppt_selected_img_field' ).val( src );
 				$( '#wppt_selected_img' ).attr( 'src', src ).css('background-image', 'url(' + src + ')' );
-				show_selected_image();
+				show_selected_media();
+			}
+
+			function unset_selected_media() {
+				$( '#wppt_selected_img_field' ).val('');
+				$( '#wppt_selected_img' ).attr( 'src', '' ).css('background-image', 'none' );
+				hide_selected_media();
 			}
 
 			function add_new_image_to_list( src ) {
@@ -276,27 +334,20 @@
 				render_interesting_images();
 			}
 
-			function set_upload_autosubmit() {
-				$( '#wppt_file' ).on('change', function(){
-					$( '#wppt_file_upload' ).submit();
-				});
-				$('#wppt_file_button').on('click', function(){
-					$( '#wppt_file').click();
-				});
-			}
-
 			function file_upload_success( url, type ) {
 				if (!url || !type || !url.match(/^https?:/) || !type.match(/^[\w]+\/.+$/)) {
-					render_error(__('Sorry, but your upload failed.') + ' [app_js.file_upload_success]');
+					render_error(__('upload-failed') + ' [app_js.file_upload_success]');
+					hide_spinner();
 					return;
 				}
 				if (type.match(/^image\//)) {
 					add_new_image_to_list(url);
-					set_selected_image(url);
+					set_selected_media(url);
 					clear_errors();
 				} else {
-					render_error(__('Please limit your uploads to photos. The file is still in the media library, and can be used in a new post, or <a href="%s" target="_blank">downloaded here</a>.').replace('%s', encodeURI(url)));
+					render_error(__('limit-uploads-to-photos').replace('%s', encodeURI(url)));
 				}
+				hide_spinner();
 			}
 
 			function clear_errors() {
@@ -305,16 +356,38 @@
 					messages_div.remove();
 			}
 
+			function maybe_clear_suggested_content_placeholder() {
+				var content_field = $('#wppt_suggested_content_container');
+				if ( __( 'start-typing-here' ).toLowerCase() == content_field.text().toLowerCase() ) {
+					content_field.empty();
+					$('#wppt_content_field').val('');
+				}
+			}
+
+			function close_self( source_url ) {
+				if ( 'popup' == ux_context )
+					self.close();
+				else if ( 'iframe' == ux_context && source_url.length )
+					top.location.href = source_url;
+				else
+					top.location.href = self.location.href.replace(/^(.+)\/wp-admin\/.+$/, '$1/');
+			}
+
+			function set_current_site( url ) {
+				var no_scheme_url = url.replace(/^https?:/, '');
+				console.log(url, no_scheme_url);
+			}
+
 /* ***************************************************************
  * RENDERING FUNCTIONS
  *************************************************************** */
 
 			function render_tools_visibility() {
-				if ( 'top' != ux_context && data.u && data.u.match(/^https?:/ ) ) {
+				if ( data.u && data.u.match(/^https?:/ ) )
 					$('#wppt_scanbar').hide();
-				}
-				// Only while being developed, looking ugly otherwise :)
-				$('#wppt_sites').hide();
+
+				if ( 'iframe' != ux_context  )
+					$('#wppt_close_button').hide();
 			}
 
 			function render_default_form_field_values() {
@@ -324,16 +397,16 @@
 				$('#wppt_selected_img_field').val( featured );
 				$('#wppt_source_url_field').val( get_canonical_link( data ) );
 				$('#wppt_source_name_field').val( get_source_site_name( data ) );
-				$('#wppt_publish_field').val( __( 'Publish' ) );
-				$('#wppt_draft_field').val( __( 'Save Draft' ) );
+				$('#wppt_publish_field').val( __( 'publish' ) );
+				$('#wppt_draft_field').val( __( 'save-draft' ) );
 
-				$('#wppt_file_button').val(__( 'Upload Photo' ) );
+				$('#wppt_file_button').val(__( 'upload-photo' ) );
 
-				$('#wppt_url_scan').attr('placeholder', __( 'Enter a URL to scan' )).val( ( data.u && data.u.match(/^https?:/ ) ) ? data.u : '' );
-				$('#wppt_url_scan_submit').val(__( 'Scan' ) );
+				$('#wppt_url_scan').attr('placeholder', __( 'enter-url-to-scan' )).val( ( data.u && data.u.match(/^https?:/ ) ) ? data.u : '' );
+				$('#wppt_url_scan_submit').val(__( 'scan' ) );
 
-				$('#wppt_new_site').attr('placeholder', __( 'Enter any WordPress URL' ) );
-				$('#wppt_new_site_submit').val(__( 'Add' ) );
+				$('#wppt_new_site').attr('placeholder', __( 'enter-wp-url' ) );
+				$('#wppt_new_site_submit').val(__( 'add' ) );
 			}
 
 			function render_notice( msg, error ) {
@@ -349,8 +422,16 @@
 			}
 
 			function render_startup_notices() {
+				// Render errors sent in the data, if any
+				if ( data.errors && data.errors.length ) {
+					$.each( data.errors, function(i, msg) {
+						render_error(msg);
+					} );
+				}
+
+				// Prompt user to upgrade their bookmarklet if there is a version mismatch.
 				if ( data.v && data._version && data.v != data._version ) {
-					render_notice( __( 'You should upgrade <a href="%s" target="_blank">your bookmarklet</a> to the latest version!').replace( '%s', site_config.runtime_url.replace( /^(.+)\/press-this\.php(\?.*)?/, '$1/tools.php' ) ) );
+					render_notice( __( 'should-upgrade-bookmarklet').replace( '%s', site_config.runtime_url.replace( /^(.+)\/press-this\.php(\?.*)?/, '$1/tools.php' ) ) );
 				}
 			}
 
@@ -374,6 +455,8 @@
 
 				$('#wppt_suggested_content_container').css({
 					'display' : 'block'
+				}).on('focus', function(){
+					maybe_clear_suggested_content_placeholder();
 				}).on('input', function(){
 					$('#wppt_content_field').val( $(this).html() );
 				}).html( suggested_content_str );
@@ -394,16 +477,22 @@
 					'width'              : current_width + 'px',
 					'height'             : parseInt( current_width / 1.6) + 'px'
 				}).click(function(){
-					set_selected_image( display_src );
+					set_selected_media( display_src );
 				}).appendTo('#wppt_featured_image_container');
+
+				show_nomedia_button();
 			}
 
 			function render_interesting_images() {
-				var img_switch     = $('#wppt_other_images_switch'),
-					imgs_container = $('#wppt_other_images_container');
+				var img_switch     = $('#wppt_all_media_switch'),
+					imgs_container = $('#wppt_all_media_container');
 
-				if ( ! interesting_images || interesting_images.length < 2 ) {
-					img_switch.text('').hide();
+				imgs_container.empty();
+
+				if ( ! interesting_images || ! interesting_images.length ) {
+					img_switch.attr(
+						'title', __( 'show-selected-media' )
+					).hide();
 					imgs_container.hide();
 					return;
 				}
@@ -435,15 +524,19 @@
 					}).css({
 						'background-image'   : 'url('+display_src+')'
 					}).click(function(){
-						set_selected_image( display_src );
-					}).appendTo('#wppt_other_images_container');
+						set_selected_media( display_src );
+					}).appendTo(imgs_container);
 				});
 
-				img_switch.text(
-					__( 'Show other images' )
-				).click(function(){
-					show_other_images();
-				}).show();
+				imgs_container.show();
+
+				img_switch.click(function(){
+					show_all_media();
+				}).attr(
+					'title', __( 'show-all-media' )
+				).show();
+
+				show_nomedia_button();
 			}
 
 /* ***************************************************************
@@ -457,8 +550,7 @@
 
 			function render(){
 				// We're on!
-				set_upload_autosubmit();
-				$("head title").text(__( 'Welcome to Press This!' ));
+				$("head title").text(__( 'welcome' ));
 				render_tools_visibility();
 				render_default_form_field_values();
 				render_admin_bar();
@@ -471,18 +563,57 @@
 			}
 
 			function monitor(){
+				show_spinner();
+
+				// Sites list and related functionality
+				$( '#wppt_current_site').click(function( e ){
+					// $('#wppt_sites').toggle();
+				});
+
+				$( '#wppt_current_site a, #wppt_current_site div').click(function( e ){
+					e.preventDefault();
+				});
+
+				$( '.wppt_site_entry').click(function(e){
+					set_current_site( $(this).data('url') );
+				});
+
+				$( '.wppt_site_entry_link').click(function( e ){
+					e.preventDefault();
+				});
+
+				// Publish and Draft buttons and submit
+
 				$( '#wppt_draft_field' ).on( 'click', function( e ){
-					button_clicks( e, 'draft');
+					submit_post( e, 'draft');
 				});
 
 				$( '#wppt_publish_field' ).on( 'click', function( e ){
-					button_clicks( e, 'publish');
+					submit_post( e, 'publish');
 				});
 
 				$( '#wppt_form' ).on( 'submit', function( e ){
 					e.preventDefault();
-					button_clicks( $( '#wppt_draft_field' ), 'draft');
+					submit_post( $( '#wppt_draft_field' ), 'draft');
 				});
+
+				// File upload button and autosubmit
+
+				$( '#wppt_file' ).on('change', function(){
+					show_spinner();
+					$( '#wppt_file_upload' ).submit();
+				});
+
+				$('#wppt_file_button').on('click', function(){
+					$( '#wppt_file').click();
+				});
+
+				// Close button
+				$('#wppt_close_button').on('click', function(){
+					close_self( get_canonical_link( data ) );
+				});
+
+				hide_spinner();
 
 				return true;
 			}
@@ -499,11 +630,11 @@
 				// @TODO: couldn't render, fail gracefully
 				console.log('Could not render...');
 			} else if ( ! monitor() ) {
-				// @TODO: couldn't render, fail gracefully
+				// @TODO: couldn't monitor, fail gracefully
 				console.log('Could not monitor app...');
 			}
 
-			// Assign callback/public functions to returned object
+			// Assign callback/public properties/methods to returned object
 			this.file_upload_success = file_upload_success;
 			this.render_error        = render_error;
 		};
