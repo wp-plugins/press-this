@@ -3,11 +3,10 @@
 Plugin Name: Press This
 Plugin URI: https://wordpress.org/plugins/press-this/
 Description: Posting images, links, and cat gifs will never be the same.
-Version: 0.0.4.3-20150131
+Version: 0.0.4.3-20150204
 Author: Press This Team
 Author URI: https://corepressthis.wordpress.com/
 Text Domain: press-this
-Domain Path: /languages
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 */
@@ -225,31 +224,29 @@ class WpPressThis {
 	 * @return array
 	 */
 	public function i18n() {
-		$domain = 'press-this';
-
 		// TODO: remove redundant!
 		return array(
-			'press-this'                 => __( 'Press This!', $domain ),
-			'welcome'                    => __( 'Welcome to Press This!', $domain ),
-			'source'                     => __( 'Source:', $domain ),
-			'settings'                   => __( 'Settings', $domain ),
-			'close'                      => __( 'Close', $domain ),
-			'no-media'                   => __( 'Clear selected media', $domain ),
-			'show-all-media'             => __( 'Display all media', $domain ),
-			'show-selected-media'        => __( 'Display selected media', $domain ),
-			'publish'                    => __( 'Publish', $domain ),
-			'save-draft'                 => __( 'Save Draft', $domain ),
-			'new-post'                   => __( 'New Post', $domain ),
-			'start-typing-here'          => __( 'Start typing here.', $domain ),
-			'enter-url-to-scan'          => __( 'Enter a URL to scan', $domain ),
-			'scan'                       => __( 'Scan', $domain ),
-			'enter-wp-url'               => __( 'Enter a WordPress URL', $domain ),
-			'add'                        => __( 'Add', $domain ),
-			'upload-photo'               => __( 'Upload Photo', $domain ),
-			'upload-failed'              => __( 'Sorry, but your upload failed.', $domain ),
-			'unexpected-error'           => __( 'Sorry, but an unexpected error occurred.', $domain ),
-			'should-upgrade-bookmarklet' => __( 'You should upgrade <a href="%s" target="_blank">your bookmarklet</a> to the latest version!', $domain ),
-			'limit-uploads-to-photos'    => __( 'Please limit your uploads to photos. The file is still in the media library, and can be used in a new post, or <a href="%s" target="_blank">downloaded here</a>.', $domain ),
+			'press-this'                 => __( 'Press This!', 'press-this' ),
+			'welcome'                    => __( 'Welcome to Press This!', 'press-this' ),
+			'source'                     => __( 'Source:', 'press-this' ),
+			'settings'                   => __( 'Settings', 'press-this' ),
+			'close'                      => __( 'Close', 'press-this' ),
+			'no-media'                   => __( 'Clear selected media', 'press-this' ),
+			'show-all-media'             => __( 'Display all media', 'press-this' ),
+			'show-selected-media'        => __( 'Display selected media', 'press-this' ),
+			'publish'                    => __( 'Publish', 'press-this' ),
+			'save-draft'                 => __( 'Save Draft', 'press-this' ),
+			'new-post'                   => __( 'New Post', 'press-this' ),
+			'start-typing-here'          => __( 'Start typing here.', 'press-this' ),
+			'enter-url-to-scan'          => __( 'Enter a URL to scan', 'press-this' ),
+			'scan'                       => __( 'Scan', 'press-this' ),
+			'enter-wp-url'               => __( 'Enter a WordPress URL', 'press-this' ),
+			'add'                        => __( 'Add', 'press-this' ),
+			'upload-photo'               => __( 'Upload Photo', 'press-this' ),
+			'upload-failed'              => __( 'Sorry, but your upload failed.', 'press-this' ),
+			'unexpected-error'           => __( 'Sorry, but an unexpected error occurred.', 'press-this' ),
+			'should-upgrade-bookmarklet' => __( 'You should upgrade <a href="%s" target="_blank">your bookmarklet</a> to the latest version!', 'press-this' ),
+			'limit-uploads-to-photos'    => __( 'Please limit your uploads to photos. The file is still in the media library, and can be used in a new post, or <a href="%s" target="_blank">downloaded here</a>.', 'press-this' ),
 		);
 	}
 
@@ -573,12 +570,16 @@ class WpPressThis {
 			$data['_meta'] = array();
 		}
 
-		if ( preg_match_all( '/<meta (.+)[\s]?\/>/  ', $source_content, $matches ) ) {
+		if ( preg_match_all( '/<meta (.+)[\s]?\/?>/  ', $source_content, $matches ) ) {
 			if ( !empty( $matches[0] ) ) {
 				foreach ( $matches[0] as $key => $value ) {
-					if ( preg_match( '/<meta[^>]+(property|name)="(.+)"[^>]+content="(.+)"[^>]+\/>/', $value, $new_matches ) ) {
+					if ( preg_match( '/<meta[^>]+(property|name)="(.+)"[^>]+content="(.+)"/', $value, $new_matches ) ) {
 						if ( empty( $data['_meta'][ $new_matches[2] ] ) ) {
-							$data['_meta'][ $new_matches[2] ] = $new_matches[3];
+							if ( preg_match( '/:?(title|description|keywords)$/', $new_matches[2] ) ) {
+								$data['_meta'][ $new_matches[2] ] = str_replace( '&#039;', "'", str_replace( '&#034;', '', html_entity_decode( $new_matches[3] ) ) );
+							} else {
+								$data['_meta'][ $new_matches[2] ] = $new_matches[3];
+							}
 						}
 					}
 				}
@@ -683,7 +684,6 @@ class WpPressThis {
 		$load_js_inc              = $site_settings['plugin_dir_url'] . '/js/load.js';
 		$form_action              = $site_settings['runtime_url'];
 		$upload_action            = preg_replace( '/^(.+)\/press-this\.php$/', '\1/media-upload.php', $site_settings['runtime_url'] ) . '?referer=wptuts-settings&type=image&TB_iframe=true&post_id=0';
-		$svg_icons_inc            = self::plugin_dir_path() . '/images/icons/dashicons.svg';
 		$txt_domain               = 'press-this';
 
 		// Echo HTML
@@ -724,16 +724,9 @@ class WpPressThis {
 	?>
 </head>
 <body>
-	<?php
-		// Include generated SVG icons file
-		if ( file_exists( $svg_icons_inc ) )
-			require_once( $svg_icons_inc );
-	?>
 	<div id="wppt_adminbar" class="adminbar">
 		<h1 id="wppt_current_site" class="current-site">
-			<span href="#" class="dashicons dashicons-wordpress-alt">
-				<svg class="icon"><use xlink:href="#dashicons-wordpress-alt" /></svg>
-			</span>
+			<span class="dashicons dashicons-wordpress-alt"></span>
 			<a href="#" target="_blank"></a>
 		</h1>
 		<ul id="wppt_sites" class="site-list">
@@ -751,9 +744,7 @@ class WpPressThis {
 					<input type="text" name="wppt_new_site" id="wppt_new_site" class="add-site__url" value="" placeholder="<?php echo esc_attr( $i18n['enter-wp-url'] ) ?>" />
 					<input type="submit" name="wppt_new_site_submit" id="wppt_new_site_submit" class="add-site__submit" value="<?php echo esc_attr( $i18n['add'] ) ?>" style="display:none"/>
 					<a href="" class="add-site__submit">
-						<div href="#" class="dashicons dashicons-plus">
-							<svg class="icon"><use xlink:href="#dashicons-plus" /></svg>
-						</div>
+						<span class="dashicons dashicons-plus"></span>
 						Add
 					</a>
 				</form>
@@ -780,8 +771,8 @@ class WpPressThis {
 		<div id='wppt_featured_image_container' class="featured-container">
 			<img src="" id="wppt_selected_img" class="featured-image" width="400" height="300" />
 			<div role="group">
-				<a role="button" href="#" title="<?php echo esc_attr( $i18n['show-all-media'] ) ?>" id="wppt_all_media_switch" class="icon-button--dark dashicons dashicons-images-alt2"><svg class="icon"><use xlink:href="#dashicons-images-alt2" /></svg></a>
-				<a role="button" href="#" title="<?php echo esc_attr( $i18n['no-media'] ) ?>" id="wppt_no_image" class="icon-button--dark dashicons dashicons-no"><svg class="icon"><use xlink:href="#dashicons-no" /></svg></a>
+				<a role="button" href="#" title="<?php echo esc_attr( $i18n['show-all-media'] ) ?>" id="wppt_all_media_switch" class="icon-button--dark dashicons dashicons-images-alt2"><span class="screen-reader-text"><?php _e( 'Switch featured image' ); ?></span></a>
+				<a role="button" href="#" title="<?php echo esc_attr( $i18n['no-media'] ) ?>" id="wppt_no_image" class="icon-button--dark dashicons dashicons-no"><span class="screen-reader-text"><?php _e( 'Remove featured image' ); ?></span></a>
 			</div>
 			<div id='wppt_all_media_widget' class="all-media">
 				<div id='wppt_all_media_container'></div>
