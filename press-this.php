@@ -205,19 +205,17 @@ class WpPressThis {
 	 * @uses admin_url(), wp_create_nonce()
 	 */
 	public function site_settings() {
-		$current_user = wp_get_current_user();
-		$site_name    = get_bloginfo( 'name', 'display' );
-		$site_url     = self::strip_url_scheme( home_url( '/' ) );
-		$users_sites  = array();
+		$current_user      = wp_get_current_user();
+		$site_name         = get_bloginfo( 'name', 'display' );
+		$site_url          = self::strip_url_scheme( home_url( '/' ) );
+		$supported_formats = get_theme_support( 'post-formats' );
+		$post_formats      = array();
 
-		/* TODO: move to the browser addon
-		foreach ( get_blogs_of_user( $current_user->ID ) as $site_id => $site_info ) {
-			// Do want to include self in the menu, with proper scheme. But just once.
-			if ( empty( $site_info->siteurl ) || isset( $users_sites[ $site_info->siteurl ] ) )
-				continue;
-			$users_sites[ rtrim( self::set_url_scheme( $site_info->siteurl ), '/' ) ] = $site_info->blogname;
+		if ( is_array( $supported_formats[0] ) ) {
+			foreach ( $supported_formats[0] as $post_format ) {
+				$post_formats[ $post_format ] = esc_html( get_post_format_string( $post_format ) );
+			}
 		}
-		*/
 
 		return array(
 			'version'        => self::plugin_version(),
@@ -228,7 +226,7 @@ class WpPressThis {
 			'runtime_url'    => self::strip_url_scheme( self::runtime_url() ),
 			'plugin_dir_url' => self::plugin_dir_url(),
 			'ajax_url'       => self::strip_url_scheme( admin_url( 'admin-ajax.php' ) ),
-			'instance_sites' => $users_sites,
+			'post_formats'   => $post_formats,
 			'i18n'           => self::i18n(),
 		);
 	}
