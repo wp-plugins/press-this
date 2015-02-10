@@ -356,9 +356,6 @@
 			function render_tools_visibility() {
 				if ( data.u && data.u.match(/^https?:/ ) )
 					$('#wppt_scanbar').hide();
-
-				if ( 'iframe' != ux_context  )
-					$('#wppt_close_button').hide();
 			}
 
 			function render_default_form_field_values() {
@@ -584,11 +581,6 @@
 					$( '#wppt_file').click();
 				});
 
-				// Close button
-				$('#wppt_close_button').on('click', function(){
-					close_self( get_canonical_link( data ) );
-				});
-
 				monitor_options_modal();
 				monitor_sidebar_toggle();
 
@@ -614,7 +606,7 @@
 			}
 
 			// Assign callback/public properties/methods to returned object
-			this.render_error        = render_error;
+			this.render_error = render_error;
 		};
 
 		window.wp_pressthis_app = new WpPressThis_App();
