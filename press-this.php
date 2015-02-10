@@ -3,7 +3,7 @@
 Plugin Name: Press This
 Plugin URI: https://wordpress.org/plugins/press-this/
 Description: Posting images, links, and cat gifs will never be the same.
-Version: 0.0.5-20150209
+Version: 0.0.5-20150210
 Author: Press This Team
 Author URI: https://corepressthis.wordpress.com/
 Text Domain: press-this
@@ -719,7 +719,7 @@ class WpPressThis {
 			<a href="#" target="_blank"></a>
 		</h1>
 		<button class="options-open button--subtle"><span class="dashicons dashicons-tag"></span><span class="screen-reader-text"><?php _e('Show post options'); ?></span></button>
-		<button class="options-close button--subtle"><?php _e('Done'); ?></button>
+		<button class="options-close button--subtle is-hidden"><?php _e('Done'); ?></button>
 	</div>
 
 	<div id="wppt_scanbar" class="scan">
@@ -729,7 +729,7 @@ class WpPressThis {
 		</form>
 	</div>
 
-	<form id="wppt_form" name="wppt_form" method="POST" action="<?php echo esc_url( $form_action ) ?>" target="_self">
+	<form id="wppt_form" class="editor-form" name="wppt_form" method="POST" action="<?php echo esc_url( $form_action ) ?>" target="_self">
 		<input type="hidden" name="post_ID" id="post_ID" value="<?php echo esc_attr( $post->ID ); ?>" />
 		<input type="hidden" name="wppt_nonce" id="wppt_nonce_field" value="<?php echo esc_attr( $nonce ) ?>"/>
 		<input type="hidden" name="wppt_title" id="wppt_title_field" value=""/>
