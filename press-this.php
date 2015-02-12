@@ -3,7 +3,7 @@
 Plugin Name: Press This
 Plugin URI: https://wordpress.org/plugins/press-this/
 Description: Posting images, links, and cat gifs will never be the same.
-Version: 0.0.5-20150212
+Version: 0.0.6-20150212
 Author: Press This Team
 Author URI: https://corepressthis.wordpress.com/
 Text Domain: press-this
@@ -503,7 +503,8 @@ class WpPressThis {
 									if ( false !== strpos( $new_matches[3], '//www.youtube.com/watch?' )
 									     || false !== strpos( $new_matches[3], '//www.dailymotion.com/video/' )
 									     || preg_match( '/\/\/vimeo\.com\/[\d]+$/', $new_matches[3] )
-									     || preg_match( '/\/\/soundcloud\.com\/.+$/', $new_matches[3] ) ) {
+									     || preg_match( '/\/\/soundcloud\.com\/.+$/', $new_matches[3] )
+									     || preg_match( '/\/\/twitter\.com\/[^\/]+\/status\/[\d]+$/', $new_matches[3] ) ) {
 										if ( ! in_array( $new_matches[3], $data['_embed'] ) ) {
 											$data['_embed'][] = $new_matches[3];
 										}
