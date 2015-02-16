@@ -3,7 +3,7 @@
 Plugin Name: Press This
 Plugin URI: https://wordpress.org/plugins/press-this/
 Description: Posting images, links, and cat gifs will never be the same.
-Version: 0.0.6.1-20150215
+Version: 0.0.6.1-20150216
 Author: Press This Team
 Author URI: https://corepressthis.wordpress.com/
 Text Domain: press-this
@@ -176,7 +176,6 @@ class WpPressThis {
 	 * @uses admin_url(), wp_create_nonce()
 	 */
 	public function site_settings() {
-		$current_user      = wp_get_current_user();
 		$supported_formats = get_theme_support( 'post-formats' );
 		$post_formats      = array();
 
