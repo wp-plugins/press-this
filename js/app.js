@@ -359,6 +359,21 @@
 				$('#post-option-post-format').text( site_config.post_formats[format] );
 			}
 
+			function saveNewCategory() {
+				var data = {
+					action: 'press_this_add_category',
+					post_id: $( '#post_ID' ).val() || 0,
+					name: $( '#new-category' ).val() || '',
+					new_cat_nonce: $( '#_ajax_nonce-add-category' ).val() || '',
+					parent: $( '#new-category-parent' ).val() || ''
+				}
+
+				$.post( window.ajaxurl, data, function( response ) {
+					// temp test
+					console.log( response );
+				});
+			}
+
 /* ***************************************************************
  * RENDERING FUNCTIONS
  *************************************************************** */
@@ -649,6 +664,12 @@
 						return window.pressThisL10n.saveAlert;
 					}
 				});
+
+				$( 'button.add-cat-toggle' ).on( 'click.press-this', function() {
+					$( '.setting-modal .add-cat-wrap' ).slideToggle( 200 );
+				});
+
+				$( 'button.add-cat-submit' ).on( 'click.press-this', saveNewCategory );
 
 				return true;
 			}
