@@ -759,7 +759,7 @@ dd {
 * Complete styles for post categories UI
 */
 input[type="search"].categories-search,
-.add-category__name {
+.add-category-name {
   display: block;
   width: 100%;
   padding: 0.85714em 1.07143em;
@@ -773,7 +773,7 @@ input[type="search"].categories-search,
 }
 @media (max-width: 600px) {
   input[type="search"].categories-search,
-  .add-category__name {
+  .add-category-name {
     font-size: 16px;
     /* Needs to be 16px to prevent zooming on iOS. Guh. */
   }
@@ -944,6 +944,9 @@ input[type="search"].categories-search,
   color: #9ea7af;
 }
 
+/**
+* #.# Main
+*/
 html,
 body {
   overflow-x: hidden;
@@ -1200,17 +1203,8 @@ html {
   }
 }
 
-.editor--content {
-  min-height: 8em;
-}
-@media (max-width: 320px) {
-  .editor--content {
-    padding: 0 1.42857em;
-  }
-}
-
-.post__title,
-.post__title-placeholder {
+.post-title,
+.post-title-placeholder {
   margin: 0;
   padding: .83em 0;
   width: 100%;
@@ -1219,69 +1213,61 @@ html {
   line-height: 1.4;
   font-weight: 700;
 }
-.post__title:active, .post__title:focus,
-.post__title-placeholder:active,
-.post__title-placeholder:focus {
+.post-title:active, .post-title:focus,
+.post-title-placeholder:active,
+.post-title-placeholder:focus {
   outline: 0;
   -webkit-box-shadow: inset 0px -3px 0 #2ea2cc;
   box-shadow: inset 0px -3px 0 #2ea2cc;
   border-color: #2ea2cc;
 }
 @media (max-width: 900px) {
-  .post__title,
-  .post__title-placeholder {
+  .post-title,
+  .post-title-placeholder {
     font-size: 24px;
   }
 }
 @media (max-height: 400px) {
-  .post__title,
-  .post__title-placeholder {
+  .post-title,
+  .post-title-placeholder {
     padding: 15px 0;
     font-size: 16px;
   }
 }
 @media (max-width: 320px) {
-  .post__title,
-  .post__title-placeholder {
+  .post-title,
+  .post-title-placeholder {
     font-size: 16px;
     font-weight: 600;
     padding: 1.14286em 1.42857em;
   }
 }
 
-.post__title {
+.post-title {
+  /* IE8 fallback */
   background: url(data:image/gif;base64,R0lGODlhAQABAJEAAAAAAP///////wAAACH5BAEHAAIALAAAAAABAAEAAAICVAEAOw==);
   background: none, none;
 }
-.post__title:before {
+.post-title:before {
+  /* Keeps empty container from collapsing */
   content: '\a0';
   display: inline-block;
   width: 0;
   speak: none;
 }
 
-.post__title-placeholder {
+.post-title-placeholder {
   position: absolute;
   border: 0;
   color: #9ea7af;
   z-index: -1;
 }
 
+/* Suggested images */
 .featured-container {
   position: relative;
   padding: 2px 0;
   border-bottom: 1px solid #e5e5e5;
-}
-
-.featured-image {
-  display: block;
-  padding: 62.5% 0 0 100%;
-  background-position: center;
-  background-repeat: no-repeat;
-  -webkit-background-size: cover;
-  background-size: cover;
-  height: 0 !important;
-  cursor: pointer;
 }
 
 .all-media {
@@ -1317,7 +1303,7 @@ html {
 }
 
 .suggested-media-thumbnail:focus,
-.suggested-media--embed:focus {
+.suggested-media-embed:focus {
   outline: 0;
   -webkit-box-shadow: inset 0 0 0 3px #2ea2cc;
   box-shadow: inset 0 0 0 3px #2ea2cc;
@@ -1373,42 +1359,37 @@ html {
   }
 }
 
-.suggested-media--embed:before {
+.suggested-media-embed:before {
   content: "\f104";
   color: #fff;
   color: rgba(255, 255, 255, 0.9);
 }
-.suggested-media--embed.is-audio:hover:before, .suggested-media--embed.is-audio:active:before, .suggested-media--embed.is-audio:focus:before, .suggested-media--embed.is-tweet:hover:before, .suggested-media--embed.is-tweet:active:before, .suggested-media--embed.is-tweet:focus:before {
+.suggested-media-embed.is-audio:hover:before, .suggested-media-embed.is-audio:active:before, .suggested-media-embed.is-audio:focus:before, .suggested-media-embed.is-tweet:hover:before, .suggested-media-embed.is-tweet:active:before, .suggested-media-embed.is-tweet:focus:before {
   color: #fff;
 }
-.suggested-media--embed.is-video {
+.suggested-media-embed.is-video {
   background-color: #222;
 }
-.suggested-media--embed.is-video:hover:before, .suggested-media--embed.is-video:active:before, .suggested-media--embed.is-video:focus:before {
+.suggested-media-embed.is-video:hover:before, .suggested-media-embed.is-video:active:before, .suggested-media-embed.is-video:focus:before {
   color: rgba(255, 255, 255, 0.2);
 }
-.suggested-media--embed.is-video:before {
+.suggested-media-embed.is-video:before {
   content: "\f236";
 }
-.suggested-media--embed.is-audio {
+.suggested-media-embed.is-audio {
   background-color: #ff7d44;
 }
-.suggested-media--embed.is-audio:before {
+.suggested-media-embed.is-audio:before {
   content: "\f127";
 }
-.suggested-media--embed.is-tweet {
+.suggested-media-embed.is-tweet {
   background-color: #55acee;
 }
-.suggested-media--embed.is-tweet:before {
+.suggested-media-embed.is-tweet:before {
   content: "\f301";
 }
 
-.all-media--visible .featured-image,
-.all-media--visible #wppt_no_image,
-.all-media--visible #wppt_all_media_switch {
-  display: none;
-}
-.all-media--visible .all-media {
+.all-media-visible .all-media {
   display: block;
 }
 
@@ -1418,7 +1399,8 @@ html {
   border: 0;
 }
 
-.press-this__actions {
+/* Actions bar */
+.press-this-actions {
   position: fixed;
   bottom: 0;
   left: 0;
@@ -1428,14 +1410,14 @@ html {
   border-top: 1px solid #e5e5e5;
 }
 @media (max-width: 900px) {
-  .press-this__actions {
+  .press-this-actions {
     -webkit-transform: translateY(0);
     -ms-transform: translateY(0);
     transform: translateY(0);
     -webkit-transition: -webkit-transform .3s ease-in-out;
     transition: transform .3s ease-in-out;
   }
-  .press-this__actions.is-hidden {
+  .press-this-actions.is-hidden {
     -webkit-transform: translateY(100%);
     -ms-transform: translateY(100%);
     transform: translateY(100%);
@@ -1504,6 +1486,7 @@ html {
   }
 }
 
+/* TinyMCE styles */
 .editor .wp-media-buttons {
   float: none;
 }
@@ -1544,6 +1527,7 @@ html {
   font-size: 13px;
 }
 
+/* Options panel (sidebar) */
 .options-panel {
   position: relative;
   float: right;
@@ -1551,7 +1535,9 @@ html {
   width: 320px;
   border-left: 1px solid #e5e5e5;
   font-size: 14px;
+  /* Keeps background the full height of the screen */
   -webkit-box-shadow: 5001px 5000px 0 5000px #fff, 5000px 5000px 0 5000px #e5e5e5;
+  /* Keeps background the full height of the screen */
   box-shadow: 5001px 5000px 0 5000px #fff, 5000px 5000px 0 5000px #e5e5e5;
 }
 @media (max-width: 900px) {
@@ -1589,7 +1575,7 @@ html {
   width: 100%;
   overflow-x: hidden;
 }
-.post-options .post-option__contents {
+.post-options .post-option-contents {
   margin-left: 3px;
   color: #333;
 }
@@ -1635,7 +1621,7 @@ html {
   }
 }
 
-.post-option__title {
+.post-option-title {
   display: inline-block;
   margin: 0 0 0 8px;
   font-size: 14px;

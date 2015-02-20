@@ -592,7 +592,7 @@
 				if ( ! hasEmptyTitleStr ) {
 					$('#wppt_title_field').val( title );
 					$('#wppt_title_container').text( title );
-					$('.post__title-placeholder').addClass('screen-reader-text');
+					$('.post-title-placeholder').addClass('screen-reader-text');
 				}
 
 				$('#wppt_title_container').on( 'input', function() {
@@ -646,7 +646,7 @@
 						}
 
 						var displaySrc = '',
-							cssClass   = 'suggested-media-thumbnail suggested-media--embed';
+							cssClass   = 'suggested-media-thumbnail suggested-media-embed';
 
 						if ( src.indexOf( 'youtube.com/' ) > -1 ) {
 							displaySrc = 'https://i.ytimg.com/vi/' + src.replace( /.+v=([^&]+).*/, '$1' ) + '/hqdefault.jpg';
@@ -711,11 +711,11 @@
 				}
 
 				if ( ! found ) {
-					mediaContainer.removeClass('all-media--visible').addClass( 'no-media');
+					mediaContainer.removeClass('all-media-visible').addClass( 'no-media');
 					return;
 				}
 
-				mediaContainer.removeClass( 'no-media' ).addClass( 'all-media--visible' );
+				mediaContainer.removeClass( 'no-media' ).addClass( 'all-media-visible' );
 			}
 
 			/* ***************************************************************
@@ -775,7 +775,7 @@
 					$optClose = $( '.options-close' ),
 					$postOption = $( '.post-option' ),
 					$sidebar = $( '.options-panel' ),
-					$postActions = $( '.press-this__actions' ),
+					$postActions = $( '.press-this-actions' ),
 					$scanbar = $( '#wppt_scanbar' ),
 					isOffScreen = 'is-off-screen',
 					isHidden = 'is-hidden';
@@ -812,7 +812,7 @@
 			 */
 			function monitorPlaceholder() {
 				var $selector = $( '#wppt_title_container'),
-					$placeholder = $('.post__title-placeholder');
+					$placeholder = $('.post-title-placeholder');
 
 				$selector.on( 'focus', function() {
 					$placeholder.addClass('screen-reader-text');

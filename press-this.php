@@ -718,8 +718,8 @@ class WP_Press_This {
 	<div class="wrapper">
 		<div class="editor-wrapper">
 			<div id='wppt_app_container' class="editor">
-				<span id="wppt_title_container_label" class="post__title-placeholder"><?php _e( 'Post title' ); ?></span>
-				<h2 id="wppt_title_container" class="post__title" contenteditable="true" spellcheck="true" aria-labelledby="wppt_title_container_label" tabindex="0"></h2>
+				<span id="wppt_title_container_label" class="post-title-placeholder"><?php _e( 'Post title' ); ?></span>
+				<h2 id="wppt_title_container" class="post-title" contenteditable="true" spellcheck="true" aria-labelledby="wppt_title_container_label" tabindex="0"></h2>
 				<div id='wppt_featured_media_container' class="featured-container no-media">
 					<div id='wppt_all_media_widget' class="all-media">
 						<div id='wppt_all_media_container'></div>
@@ -756,21 +756,21 @@ class WP_Press_This {
 				<?php if ( $supports_formats ) : ?>
 					<a href="#" class="post-option">
 						<span class="dashicons dashicons-admin-post"></span>
-						<span class="post-option__title"><?php _e( 'Format' ); ?></span>
-						<span class="post-option__contents" id="post-option-post-format"><?php echo esc_html( get_post_format_string( $post_format ) ); ?></span>
+						<span class="post-option-title"><?php _e( 'Format' ); ?></span>
+						<span class="post-option-contents" id="post-option-post-format"><?php echo esc_html( get_post_format_string( $post_format ) ); ?></span>
 						<span class="dashicons dashicons-arrow-right-alt2"></span>
 					</a>
 				<?php endif; ?>
 				<a href="#" class="post-option">
 					<span class="dashicons dashicons-category"></span>
-					<span class="post-option__title"><?php _e( 'Categories' ); ?></span>
-					<span class="post-option__contents" id="post-option-category"></span>
+					<span class="post-option-title"><?php _e( 'Categories' ); ?></span>
+					<span class="post-option-contents" id="post-option-category"></span>
 					<span class="dashicons dashicons-arrow-right-alt2"></span>
 				</a>
 				<a href="#" class="post-option">
 					<span class="dashicons dashicons-tag"></span>
-					<span class="post-option__title"><?php _e( 'Tags' ); ?></span>
-					<span class="post-option__contents" id="post-option-tags"></span>
+					<span class="post-option-title"><?php _e( 'Tags' ); ?></span>
+					<span class="post-option-contents" id="post-option-tags"></span>
 					<span class="dashicons dashicons-arrow-right-alt2"></span>
 				</a>
 			</div>
@@ -796,7 +796,7 @@ class WP_Press_This {
 				<div class="add-category is-hidden">
 					<label class="screen-reader-text" for="new-category"><?php echo $taxonomy->labels->add_new_item; ?></label>
 
-					<input type="text" id="new-category" class="add-category__name" placeholder="<?php echo esc_attr( $taxonomy->labels->new_item_name ); ?>" value="" aria-required="true">
+					<input type="text" id="new-category" class="add-category-name" placeholder="<?php echo esc_attr( $taxonomy->labels->new_item_name ); ?>" value="" aria-required="true">
 					<label class="screen-reader-text" for="new-category-parent"><?php echo $taxonomy->labels->parent_item_colon; ?></label>
 
 					<?php
@@ -831,7 +831,7 @@ class WP_Press_This {
 		</div><!-- .options-panel -->
 	</div><!-- .wrapper -->
 
-	<div class="press-this__actions">
+	<div class="press-this-actions">
 		<div class="pressthis-media-buttons">
 			<button type="button" class="insert-media button-subtle" data-editor="pressthis">
 				<span class="dashicons dashicons-admin-media"></span>
