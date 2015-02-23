@@ -3,7 +3,7 @@
 Plugin Name: Press This
 Plugin URI: https://wordpress.org/plugins/press-this/
 Description: Posting images, links, and cat gifs will never be the same.
-Version: 0.0.8-20150222
+Version: 0.0.8-20150223
 Author: Press This Team
 Author URI: https://corepressthis.wordpress.com/
 Text Domain: press-this
@@ -856,8 +856,8 @@ class WP_Press_This {
 
 	<div class="wrapper">
 		<div class="editor-wrapper">
-			<div class="alerts">
-				<p class="notice hidden should-upgrade-bookmarklet">
+			<div class="alerts is-hidden">
+				<p class="alert is-notice should-upgrade-bookmarklet">
 					<?php printf( __( 'You should upgrade <a href="%s" target="_blank">your bookmarklet</a> to the latest version!' ), admin_url( 'tools.php?page=press_this_options' ) ); ?>
 				</p>
 			</div>
